@@ -191,20 +191,22 @@ class Lexer:
                     initialfuncs.append(f)
 
         for key, lre in self.lexstatere.items():
-             titem = []
-             for i in range(len(lre)):
-                  titem.append((self.lexstateretext[key][i],_funcs_to_names(lre[i][1],self.lexstaterenames[key][i])))
-             tabre[key] = titem
+            titem = [
+                (
+                    self.lexstateretext[key][i],
+                    _funcs_to_names(lre[i][1], self.lexstaterenames[key][i]),
+                )
+                for i in range(len(lre))
+            ]
+
+            tabre[key] = titem
 
         tf.write("_lexstatere   = %s\n" % repr(tabre))
         tf.write("_lexstateignore = %s\n" % repr(self.lexstateignore))
 
         taberr = { }
         for key, ef in self.lexstateerrorf.items():
-             if ef:
-                  taberr[key] = ef.__name__
-             else:
-                  taberr[key] = None
+            taberr[key] = ef.__name__ if ef else None
         tf.write("_lexstateerrorf = %s\n" % repr(taberr))
         tf.close()
 
@@ -233,13 +235,19 @@ class Lexer:
         self.lexstatere     = { }
         self.lexstateretext = { }
         for key,lre in lextab._lexstatere.items():
-             titem = []
-             txtitem = []
-             for i in range(len(lre)):
-                  titem.append((re.compile(lre[i][0],lextab._lexreflags | re.VERBOSE),_names_to_funcs(lre[i][1],fdict)))
-                  txtitem.append(lre[i][0])
-             self.lexstatere[key] = titem
-             self.lexstateretext[key] = txtitem
+            titem = []
+            txtitem = []
+            for item in lre:
+                titem.append(
+                    (
+                        re.compile(item[0], lextab._lexreflags | re.VERBOSE),
+                        _names_to_funcs(item[1], fdict),
+                    )
+                )
+
+                txtitem.append(item[0])
+            self.lexstatere[key] = titem
+            self.lexstateretext[key] = txtitem
         self.lexstateerrorf = { }
         for key,ef in lextab._lexstateerrorf.items():
              self.lexstateerrorf[key] = fdict[ef]
@@ -261,7 +269,7 @@ class Lexer:
     # begin() - Changes the lexing state
     # ------------------------------------------------------------
     def begin(self,state):
-        if not state in self.lexstatere:
+        if state not in self.lexstatere:
             raise ValueError("Undefined state")
         self.lexre = self.lexstatere[state]
         self.lexretext = self.lexstateretext[state]
@@ -522,12 +530,8 @@ def _statetoken(s,names):
     nonstate = 1
     parts = s.split("_")
     for i in range(1,len(parts)):
-         if not parts[i] in names and parts[i] != 'ANY': break
-    if i > 1:
-       states = tuple(parts[1:i])
-    else:
-       states = ('INITIAL',)
-
+        if parts[i] not in names and parts[i] != 'ANY': break
+    states = tuple(parts[1:i]) if i > 1 else ('INITIAL', )
     if 'ANY' in states:
        states = tuple(names)
 
@@ -551,10 +555,7 @@ class LexerReflect(object):
         self.files      = {}
         self.error      = 0
 
-        if log is None:
-            self.log = PlyLogger(sys.stderr)
-        else:
-            self.log = log
+        self.log = PlyLogger(sys.stderr) if log is None else log
 
     # Get all of the basic information
     def get_all(self):
@@ -622,29 +623,30 @@ class LexerReflect(object):
         self.states = self.ldict.get("states",None)
         # Build statemap
         if self.states:
-             if not isinstance(self.states,(tuple,list)):
-                  self.log.error("states must be defined as a tuple or list")
-                  self.error = 1
-             else:
-                  for s in self.states:
-                        if not isinstance(s,tuple) or len(s) != 2:
-                               self.log.error("Invalid state specifier %s. Must be a tuple (statename,'exclusive|inclusive')",repr(s))
-                               self.error = 1
-                               continue
-                        name, statetype = s
-                        if not isinstance(name,StringTypes):
-                               self.log.error("State name %s must be a string", repr(name))
-                               self.error = 1
-                               continue
-                        if not (statetype == 'inclusive' or statetype == 'exclusive'):
-                               self.log.error("State type for state %s must be 'inclusive' or 'exclusive'",name)
-                               self.error = 1
-                               continue
-                        if name in self.stateinfo:
-                               self.log.error("State '%s' already defined",name)
-                               self.error = 1
-                               continue
-                        self.stateinfo[name] = statetype
+            if isinstance(self.states,(tuple,list)):
+                for s in self.states:
+                    if not (isinstance(s, tuple) and len(s) == 2):
+                        self.log.error("Invalid state specifier %s. Must be a tuple (statename,'exclusive|inclusive')",repr(s))
+                        self.error = 1
+                        continue
+                    name, statetype = s
+                    if not isinstance(name,StringTypes):
+                           self.log.error("State name %s must be a string", repr(name))
+                           self.error = 1
+                           continue
+                    if not statetype in ['inclusive', 'exclusive']:
+                        self.log.error("State type for state %s must be 'inclusive' or 'exclusive'",name)
+                        self.error = 1
+                        continue
+                    if name in self.stateinfo:
+                           self.log.error("State '%s' already defined",name)
+                           self.error = 1
+                           continue
+                    self.stateinfo[name] = statetype
+
+            else:
+                self.log.error("states must be defined as a tuple or list")
+                self.error = 1
 
     # Get all of the symbols with a t_ prefix and sort them into various
     # categories (functions, strings, error functions, and ignore characters)
@@ -732,10 +734,7 @@ class LexerReflect(object):
                 self.files[file] = 1
 
                 tokname = self.toknames[fname]
-                if isinstance(f, types.MethodType):
-                    reqargs = 2
-                else:
-                    reqargs = 1
+                reqargs = 2 if isinstance(f, types.MethodType) else 1
                 nargs = func_code(f).co_argcount
                 if nargs > reqargs:
                     self.log.error("%s:%d: Rule '%s' has too many arguments",file,line,f.__name__)
@@ -772,7 +771,7 @@ class LexerReflect(object):
                     self.error = 1
                     continue
 
-                if not tokname in self.tokens and tokname.find("ignore_") < 0:
+                if tokname not in self.tokens and tokname.find("ignore_") < 0:
                     self.log.error("Rule '%s' defined for an unspecified token %s",name,tokname)
                     self.error = 1
                     continue
@@ -789,7 +788,7 @@ class LexerReflect(object):
                          self.log.error("Make sure '#' in rule '%s' is escaped with '\\#'",name)
                     self.error = 1
 
-            if not self.funcsym[state] and not self.strsym[state]:
+            if not (self.funcsym[state] or self.strsym[state]):
                 self.log.error("No rules defined for state '%s'",state)
                 self.error = 1
 
@@ -801,10 +800,7 @@ class LexerReflect(object):
                 file = func_code(f).co_filename
                 self.files[file] = 1
 
-                if isinstance(f, types.MethodType):
-                    reqargs = 2
-                else:
-                    reqargs = 1
+                reqargs = 2 if isinstance(f, types.MethodType) else 1
                 nargs = func_code(f).co_argcount
                 if nargs > reqargs:
                     self.log.error("%s:%d: Rule '%s' has too many arguments",file,line,f.__name__)
@@ -873,9 +869,8 @@ def lex(module=None,object=None,debug=0,optimize=0,lextab="lextab",reflags=0,now
     if errorlog is None:
         errorlog = PlyLogger(sys.stderr)
 
-    if debug:
-        if debuglog is None:
-            debuglog = PlyLogger(sys.stderr)
+    if debug and debuglog is None:
+        debuglog = PlyLogger(sys.stderr)
 
     # Get the module dictionary used for the lexer
     if object: module = object
@@ -889,9 +884,8 @@ def lex(module=None,object=None,debug=0,optimize=0,lextab="lextab",reflags=0,now
     # Collect parser information from the dictionary
     linfo = LexerReflect(ldict,log=errorlog,reflags=reflags)
     linfo.get_all()
-    if not optimize:
-        if linfo.validate_all():
-            raise SyntaxError("Can't build lexer")
+    if not optimize and linfo.validate_all():
+        raise SyntaxError("Can't build lexer")
 
     if optimize and lextab:
         try:
@@ -945,8 +939,6 @@ def lex(module=None,object=None,debug=0,optimize=0,lextab="lextab",reflags=0,now
 
         regexs[state] = regex_list
 
-    # Build the master regular expressions
-
     if debug:
         debuglog.info("lex: ==== MASTER REGEXS FOLLOW ====")
 
@@ -984,15 +976,15 @@ def lex(module=None,object=None,debug=0,optimize=0,lextab="lextab",reflags=0,now
     # Check state information for ignore and error rules
     for s,stype in stateinfo.items():
         if stype == 'exclusive':
-              if not s in linfo.errorf:
-                   errorlog.warning("No error rule is defined for exclusive state '%s'", s)
-              if not s in linfo.ignore and lexobj.lexignore:
-                   errorlog.warning("No ignore rule is defined for exclusive state '%s'", s)
+            if s not in linfo.errorf:
+                errorlog.warning("No error rule is defined for exclusive state '%s'", s)
+            if s not in linfo.ignore and lexobj.lexignore:
+                errorlog.warning("No ignore rule is defined for exclusive state '%s'", s)
         elif stype == 'inclusive':
-              if not s in linfo.errorf:
-                   linfo.errorf[s] = linfo.errorf.get("INITIAL",None)
-              if not s in linfo.ignore:
-                   linfo.ignore[s] = linfo.ignore.get("INITIAL","")
+            if s not in linfo.errorf:
+                linfo.errorf[s] = linfo.errorf.get("INITIAL",None)
+            if s not in linfo.ignore:
+                linfo.ignore[s] = linfo.ignore.get("INITIAL","")
 
     # Create global versions of the token() and input() functions
     token = lexobj.token
@@ -1022,16 +1014,9 @@ def runmain(lexer=None,data=None):
             sys.stdout.write("Reading from standard input (type EOF to end):\n")
             data = sys.stdin.read()
 
-    if lexer:
-        _input = lexer.input
-    else:
-        _input = input
+    _input = lexer.input if lexer else input
     _input(data)
-    if lexer:
-        _token = lexer.token
-    else:
-        _token = token
-
+    _token = lexer.token if lexer else token
     while 1:
         tok = _token()
         if not tok: break
@@ -1046,10 +1031,7 @@ def runmain(lexer=None,data=None):
 
 def TOKEN(r):
     def set_doc(f):
-        if hasattr(r,"__call__"):
-            f.__doc__ = r.__doc__
-        else:
-            f.__doc__ = r
+        f.__doc__ = r.__doc__ if hasattr(r,"__call__") else r
         return f
     return set_doc
 

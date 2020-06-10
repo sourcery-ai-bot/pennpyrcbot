@@ -15,18 +15,16 @@ class agent:
 
     def __str__(self):        
         s = "Agent: \n"
-        
+
         if self.det == null: s += "Determiner: none given\n"
         else: s += ("Determiner: " + self.det.val + "\n")
 
         if len(self.descriptors) == 0: s += "Descriptors: none given\n"
         else:
-            desc_strs = []
-            for desc in self.descriptors: desc_strs.append(desc.val)
+            desc_strs = [desc.val for desc in self.descriptors]
             s += ("Descriptors: " + ", ".join(desc_strs) + "\n")
-        
-        if self.core == null: s += "Core: none given"
-        else: s += ("Core: " + self.core.val)
+
+        s += "Core: none given" if self.core == null else ("Core: " + self.core.val)
         return s
 
     def __repr__(self):
@@ -47,12 +45,10 @@ class action:
 
         if len(self.descriptors) == 0: s += "Descriptors: none given\n"
         else:
-            desc_strs = []
-            for desc in self.descriptors: desc_strs.append(desc.val)
+            desc_strs = [desc.val for desc in self.descriptors]
             s += ("Descriptors: " + ", ".join(desc_strs) + "\n")
 
-        if self.core == null: s += "Core: none given"
-        else: s += ("Core: " + self.core.val)
+        s += "Core: none given" if self.core == null else ("Core: " + self.core.val)
         return s
 
     def __repr__(self):
@@ -96,19 +92,15 @@ class theme:
 
             if len(self.descriptors) == 0: s += "Descriptors: none given\n"
             else:
-                desc_strs = []
-                for desc in self.descriptors: desc_strs.append(desc.val)
+                desc_strs = [desc.val for desc in self.descriptors]
                 s += ("Descriptors: " + ", ".join(desc_strs) + "\n")
-            
-            if self.core == null: s += "Core: none given"
-            else: s += ("Core: " + self.core.val)
-            return s
 
+            s += "Core: none given" if self.core == null else ("Core: " + self.core.val)
         else:
-            core_strs = []
-            for core in self.core: core_strs.append(core.val)
+            core_strs = [core.val for core in self.core]
             s += ("Core: " + ", ".join(core_strs))
-            return s
+
+        return s
         
     def __repr__(self):
         return str(self)

@@ -255,7 +255,7 @@ class IRC:
         \"NO MORE\", no more handlers will be called.
         """
 
-        if not event in self.handlers:
+        if event not in self.handlers:
             self.handlers[event] = []
         bisect.insort(self.handlers[event], ((priority, handler)))
 
@@ -270,7 +270,7 @@ class IRC:
 
         Returns 1 on success, otherwise 0.
         """
-        if not event in self.handlers:
+        if event not in self.handlers:
             return 0
         for h in self.handlers[event]:
             if handler == h[1]:
@@ -1122,10 +1122,7 @@ class Event:
         self._eventtype = eventtype
         self._source = source
         self._target = target
-        if arguments:
-            self._arguments = arguments
-        else:
-            self._arguments = []
+        self._arguments = arguments if arguments else []
 
     def eventtype(self):
         """Get the event type."""
@@ -1347,7 +1344,7 @@ def _parse_modes(mode_string, unary_modes=""):
         elif ch in unary_modes:
             if len(args) >= arg_count + 1:
                 modes.append([sign, ch, args[arg_count]])
-                arg_count = arg_count + 1
+                arg_count += 1
             else:
                 modes.append([sign, ch, None])
         else:

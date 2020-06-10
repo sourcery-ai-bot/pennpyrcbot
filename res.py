@@ -102,8 +102,6 @@ def getComment(sentence,alt):
         return "Tell me more."
     elif i == 8:
         return "You're losing my attention. We've been through who " + sentence.action.core.val + "s " + sentence.predicate.core.val + "."
-    elif i == 9:
-        pass
 
 def getSuggestion(sentence):
     i = random.randint(0,3)

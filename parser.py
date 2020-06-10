@@ -123,8 +123,7 @@ def p_question(p):
 def p_dp(p):
     '''dp : DET np
           | np'''
-    if len(p) == 3: p[0] = DP(lookup(p[1]), p[2])
-    else: p[0] = DP(None, p[2])
+    p[0] = DP(lookup(p[1]), p[2]) if len(p) == 3 else DP(None, p[2])
 
 def p_np(p):
     '''np : NOUN
@@ -140,14 +139,12 @@ def p_vnaught(p):
 def p_vp(p):
     '''vp : ADV vnaught
           | vnaught'''
-    if len(p) == 3: p[0] = VP(lookup(p[1]), p[2])
-    else: p[0] = VP(None, p[1])
+    p[0] = VP(lookup(p[1]), p[2]) if len(p) == 3 else VP(None, p[1])
 
 def p_vprime(p):
     '''vprime : vp predp
               | vp'''
-    if len(p) == 3: p[0] = VPrime(p[1], p[2])
-    else: p[0] = VPrime(p[1], None)
+    p[0] = VPrime(p[1], p[2]) if len(p) == 3 else VPrime(p[1], None)
 
 def p_predp(p):
     ''' predp : TO VERB
